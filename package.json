@@ -1,0 +1,16 @@
+{
+  "name": "pixi_tutorial",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "sergio@cloudoki.com",
+  "license": "ISC",
+  "dependencies": {
+    "machina": "^2.0.0",
+    "node-static": "^0.7.9"
+  }
+}
