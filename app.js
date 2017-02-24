@@ -1,4 +1,5 @@
- var type = "WebGL"
+ 
+  var type = "WebGL"
     if(!PIXI.utils.isWebGLSupported()){
       type = "canvas"
     }
@@ -69,16 +70,20 @@
     function addPan(){
       var lastPos;
       $(canvasDOM).on("mousedown",function(e) {
-        lastPos = {x:e.offsetX,y:e.offsetY};
-        $(canvasDOM).on("mousemove",function(e){
-          stage.x += (e.offsetX-lastPos.x);
-          stage.y += (e.offsetY-lastPos.y);  
+        if(!bubling){
           lastPos = {x:e.offsetX,y:e.offsetY};
-        })
+          $(canvasDOM).on("mousemove",function(e){
+            stage.x += (e.offsetX-lastPos.x);
+            stage.y += (e.offsetY-lastPos.y);  
+            lastPos = {x:e.offsetX,y:e.offsetY};
+            console.log("canvasMOVE");
+          })  
+        } else{
+          console.log("do nothing")
+        }
       }).on("mouseup",function(e) {
         $(canvasDOM).off("mousemove");
         lastPos = {x:e.offsetX,y:e.offsetY};
-        console.log("stage",stage.position)
       });
       isPanOn=true;
     }
@@ -98,6 +103,8 @@
       .add("cat.png")
       .load(setup);
     
+
+
     var cat,
         mouseDownX,
         mouseDownY,
@@ -120,8 +127,9 @@
 
     //DRAG FUNCTIONS
     function onDragStart(event) {
-      event.stopPropagation()
-      console.log('element down',event)
+      event.stopPropagation() //only works with parents
+      bubling = true;
+      console.log('element down',this.parent,event)
       this.data = event.data;
       this.oldGroup = this.displayGroup;
       this.displayGroup = dragLayer;
@@ -136,8 +144,8 @@
     }
 
     function onDragEnd(event) {
-      console.log('element up')
       event.stopPropagation()
+      bubling = false;
       this.displayGroup = this.oldGroup;
       this.alpha=1;
       this.data = null;
@@ -145,12 +153,11 @@
     }
 
     function onDragMove(event) {
-      console.log('element move')
       event.stopPropagation()
       var newPosition = this.data.getLocalPosition(this.parent);
       var x = newPosition.x - this.dragPoint.x;
       var y = newPosition.y - this.dragPoint.y;
-      console.log('moving',x,y);
+      console.log('element moving',x,y);
       this.x = x;
       this.y = y;
     }
@@ -193,6 +200,21 @@
       addPan();
       state = play;
       gameLoop();
+
+      subscribe(selected)
+      addObject(selected,"cat.png",100,100)
+      stage.addChild(selected)
+
+      var rectangle = new Graphics();
+      rectangle.beginFill(1,0.5);
+      rectangle.lineStyle(1, 0xFF3300, 1);
+      rectangle.drawRect(0,0,200,200);
+      rectangle.endFill();
+      
+      selected.addChild(rectangle)
+
+
+
     }
     var selection;
     function addSelection(){
@@ -382,30 +404,22 @@
         },
         states: {
           uninitialized: {
-            "*": function() {
-              this.deferUntilTransition();
-              this.transition("unselected");
-            }
+            _onEnter: function() {
+              console.log("ENTER UNITIALIZED");
+            },
+            _onExit:function(){
+              console.log("EXIT UNITIALIZED");
+            },
           },
           unselected: {
             _onEnter: function() {
               console.log("ENTER UNSELECTD");
               this.actions.clearSelectBox();
-
-              renderer.plugins.interaction.on('mousedown', this.actions.addSelectBox.bind(this));
-              renderer.plugins.interaction.on('mouseup', this.actions.transitionToSelect.bind(this));
             },
             _onExit: function() {
               console.log("EXIT UNSELECTD");
               this.actions.clearSelectBox();
             }
-                  // // If all you need to do is transition to a new state
-                  // // inside an input handler, you can provide the string
-                  // // name of the state in place of the input handler function.
-                  // timeout: "green-interruptible",
-                  // pedestrianWaiting: function() {
-                  //     this.deferUntilTransition( "green-interruptible" );
-                  // },  
           },
           selected: {
             _onEnter: function(area) {
@@ -422,36 +436,12 @@
               console.log("EXIT SELECTED");
             }
           },
-          movable:{
-            _onEnter: function() {
-              console.log("ENTER MOVABLE");
-              selected.defaultCursor="move"
-              subscribe(selected);
-            },
-            _onExit:function(){
-              console.log("EXIT MOVABLE");
-              selected
-              .off("mousemove")
-              .off("mouseup")
-              .off("mousemove");
-            }
-          },
-          off:{
-            _onEnter: function(){
-              console.log("ENTER OFF");
-              this.actions.clearSelectBox();
-              this.actions.unsubscribe();
-            },
-            _onExit : function(){
-              console.log("EXIT OFF");
-            }
-          }
         },
         start : function(){
           this.transition("unselected");
         },
         stop: function(){
-          this.transition("off");
+          this.transition("uninitialized");
         }
       });
     };
@@ -512,7 +502,6 @@
           up = keyboard(38),
           right = keyboard(39),
           down = keyboard(40),
-          selection = keyboard(83),
           shift = keyboard(16);
 
       //Left arrow key `press` method
@@ -567,16 +556,12 @@
         }
       };
 
-      selection.press = function(){
-        togglePan();
-      };
-
       //Down
       shift.press = function() {
-        removePan();
+        selection.start();
       };
       shift.release = function() {
-        addPan();
+        selection.stop();
       };
 
     }
@@ -594,23 +579,34 @@
       if(r){
         r.width=Rwidth;
         r.height =Rheight;
-        console.log('fodase')
       }
     }
+
+
+    //global interaction manager events
+    var bubling=false; // to prevent bubling in between elements/"renderer glass"/canvas
+    //detect if there was a event before or not
+    renderer.plugins.interaction.on('mousedown', function(ev) {
+      if(!bubling){
+        //selection
+        if(selection && selection.state !== "uninitialized"){
+          bubling=true;
+          this.on("mousemove",function(ev){
+            var local = ev.data.getLocalPosition(stage);
+            console.log("rendering moving",local)
+          })
+        }
+      }
+    });
+
+    renderer.plugins.interaction.on('mouseup', function(ev) {
+      bubling=false;
+      this.off("mousemove");
+    })
 
     renderer.plugins.interaction.on('rightdown', function(ev) {
         // console.log("global",ev.data.global.x,ev.data.global.y);
         console.log("local point on stage",ev.data.getLocalPosition(stage));
         var local = ev.data.getLocalPosition(stage);
         addObject(stage,"cat.png",local.x,local.y);
-
     });
-      
-      
-
-
-
-
-      
-
-       
