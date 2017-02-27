@@ -5,6 +5,8 @@
  * for more details
  */
 
+// https://www.npmjs.com/package/mouse-wheel
+
 var prefix = "", _addEventListener, onwheel, support;
 
 // detect event model
