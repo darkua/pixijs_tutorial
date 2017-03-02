@@ -13,7 +13,8 @@
         Sprite = PIXI.Sprite,
         Graphics = PIXI.Graphics,
         DisplayGroup = PIXI.DisplayGroup,
-        DisplayList  = PIXI.DisplayList;
+        DisplayList  = PIXI.DisplayList,
+        Text = PIXI.Text;
 
     //Create a Pixi stage and renderer and add the
     //renderer.view to the DOM
@@ -146,7 +147,8 @@
       Pan.start({'canvas':canvas,stage:stage,bubling:bubling});
       Zoom.start({'canvas':canvas,stage:stage});
 
-      //create the a froup container
+      //SELECTION
+      //create the a group container
       var selectionGroup = new PixiObject({type:"group",container:stage,layer:dragLayer});
       selectionGroup.add();
       //use group container for selection tool
@@ -156,6 +158,35 @@
       var shift = utils.keyboard(16);
       shift.press = s.start;
       shift.release = s.stop;
+
+      var deleteKey = utils.keyboard(8);
+      deleteKey.press = s.delete;
+
+      //DRAWING
+      //create the a drawing container
+      var drawingGroup = new PixiObject({type:"group",container:stage,layer:dragLayer});
+      drawingGroup.add();
+      //use group container for selection tool
+      var sg = new SeatGroup({draw:drawingGroup.sprite,stage:stage});
+      
+      //keyboards shortcuts for selection
+      var drawKey = utils.keyboard(68);
+      drawKey.press = sg.start;
+      drawKey.release = sg.stop;
+
+
+      //ZONES
+      //create the a drawing container
+      var zoneGroup = new PixiObject({type:"group",container:stage,layer:dragLayer});
+      zoneGroup.add();
+      //use group container for selection tool
+      var zg = new ZoneGroup({zone:zoneGroup.sprite,stage:stage});
+      
+      //keyboards shortcuts for selection
+      var zoneKey = utils.keyboard(90);
+      zoneKey.press = zg.start;
+      zoneKey.release = zg.stop;
+
 
       //add object to stage on right click
       var cat = new PixiObject({container:stage,image:"cat.png",layer:stageLayer});
@@ -167,6 +198,9 @@
           var cat = new PixiObject({container:stage,image:"cat.png",layer:stageLayer});
           cat.add(local.x,local.y);
       });
+
+
+      //select delete!
 
       //ZONES ARE GROUPS WITH DRAG AND DROP FUNCTIONALITY
       // -> DRAG AND DROP, ONLY WAY TO ADD/REMOVE ELEMENTS TO ZONE

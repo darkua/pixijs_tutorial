@@ -48,6 +48,10 @@ var Selecta = function(options){
       uninitialized: {
         _onEnter: function() {
           console.log("ENTER UNINTIALIZED");
+          
+          //remove child if already present
+          selected.removeChild(r.rect);
+
           //reset all internal values
           r.rect = null;
           r.area = null;
@@ -56,6 +60,7 @@ var Selecta = function(options){
           selected.y=0;
           selected.width=0;
           selected.height=0;
+
           //make sure all events related to selection are off
           renderer.plugins.interaction.off('mousedown').off("mousemove").off("mouseup");
         },
@@ -160,6 +165,10 @@ var Selecta = function(options){
       r.setState("unselected");
     },
     stop:function(){
+      r.setState("uninitialized");
+    },
+    delete:function(){
+      selected.removeChildren();
       r.setState("uninitialized");
     }
   }
